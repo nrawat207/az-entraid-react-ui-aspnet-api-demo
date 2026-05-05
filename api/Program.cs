@@ -22,14 +22,14 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
 // Database context with environment-specific provider
-var connectionString = builder.Configuration.GetConnectionString("LocalDBConnecttion");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var environment = builder.Environment.EnvironmentName;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (connectionString == null)
     {
-        throw new InvalidOperationException("Connection string 'LocalDBConnecttion' is missing.");
+        throw new InvalidOperationException("Connection string 'DefaultConnection' is missing.");
     }
 
     options.UseSqlServer(connectionString);

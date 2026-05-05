@@ -1,0 +1,22 @@
+# .NET
+bin/
+obj/
+*.csproj.user
+*.suo
+.vs/
+
+# Node
+node_modules/
+dist/
+.env.local
+.env.*.local
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+
+# Misc
+.DS_Store
+.vscode/
+*.log

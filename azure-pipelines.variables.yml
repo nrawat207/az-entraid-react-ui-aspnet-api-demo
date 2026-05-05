@@ -1,0 +1,51 @@
+# Azure Pipeline Variables Template
+# Use this to configure environment-specific values
+# Reference: https://learn.microsoft.com/azure/devops/pipelines/process/variables
+
+# ============================================================================
+# CONTAINER REGISTRY
+# ============================================================================
+variables:
+  containerRegistryName: 'entrademodevacr'  # ACR name (without .azurecr.io)
+  registryUsername: ''  # Set via Azure DevOps secret variables
+  registryPassword: ''  # Set via Azure DevOps secret variables
+
+# ============================================================================
+# DEVELOPMENT ENVIRONMENT
+# ============================================================================
+  # Azure Subscription
+  resourceGroupDev: 'entra-demo-dev-rg'
+  azureLocationDev: 'eastus'
+  subscriptionNameDev: 'Visual Studio Professional'
+  
+  # SQL Admin
+  sqlAdminUsernameDev: 'sqladmin'
+  sqlAdminPasswordDev: ''  # Set via secret variable
+
+# ============================================================================
+# PRODUCTION ENVIRONMENT
+# ============================================================================
+  # Azure Subscription
+  resourceGroupProd: 'entra-demo-prod-rg'
+  azureLocationProd: 'eastus'
+  subscriptionNameProd: 'Visual Studio Professional'
+  
+  # SQL Admin
+  sqlAdminUsernameProd: 'prodadmin'
+  sqlAdminPasswordProd: ''  # Set via secret variable
+
+# ============================================================================
+# IMAGE NAMING
+# ============================================================================
+  imageRepository: 'entra-demo'
+  frontendImage: 'entra-demo/frontend'
+  bffImage: 'entra-demo/bff'
+  apiImage: 'entra-demo/api'
+
+# ============================================================================
+# BUILD SETTINGS
+# ============================================================================
+  buildConfiguration: 'Release'
+  dotnetVersion_net8: '8.0.x'
+  dotnetVersion_net10: '10.0.x'
+  nodeVersion: '20.x'

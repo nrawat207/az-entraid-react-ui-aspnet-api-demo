@@ -76,9 +76,9 @@ stages:
     steps:
     - task: UseDotNet@2
       inputs:
-        version: '8.0.x'
+        version: '10.0.x'
         packageType: 'sdk'
-      displayName: 'Install .NET 8 SDK'
+      displayName: 'Install .NET 10 SDK'
     
     - script: |
         cd bff

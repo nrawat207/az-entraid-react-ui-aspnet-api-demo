@@ -65,7 +65,7 @@ ASP.NET Core protected API
 
 ## Prerequisites
 
-- .NET SDK 8.0 or later
+- .NET SDK 10.0 or later
 - Node.js 18 or later
 - npm
 - A Microsoft Entra ID tenant

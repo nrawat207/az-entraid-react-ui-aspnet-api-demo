@@ -1,5 +1,5 @@
 # Build stage for BFF
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS builder
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS builder
 
 WORKDIR /build
 
@@ -16,7 +16,7 @@ COPY bff/ ./
 RUN dotnet build -c Release -o /app/build
 
 # Publish stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS publish
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS publish
 
 WORKDIR /build
 
@@ -27,7 +27,7 @@ COPY --from=builder /app/build ./
 RUN dotnet publish -c Release -o /app/publish
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
 
 WORKDIR /app
 

@@ -5,7 +5,7 @@
 This repository contains a complete, production-ready enterprise deployment of a modern web application with:
 
 - **Frontend:** React 19 + Vite (TypeScript)
-- **Backend-for-Frontend:** ASP.NET Core 8.0 (OpenID Connect + Cookie auth)
+- **Backend-for-Frontend:** ASP.NET Core 10.0 (OpenID Connect + Cookie auth)
 - **Protected API:** ASP.NET Core 10.0 (JWT bearer auth)
 - **Infrastructure:** Azure Container Apps, SQL Database, Key Vault, App Insights
 - **Authentication:** Microsoft Entra ID (Azure AD)
@@ -29,7 +29,7 @@ This repository contains a complete, production-ready enterprise deployment of a
         ▼                  ▼                  ▼
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │ Frontend    │    │    BFF      │    │   API       │
-│ (React)     │◄──►│ (.NET 8.0)  │◄──►│ (.NET 10.0) │
+│ (React)     │◄──►│ (.NET 10.0) │◄──►│ (.NET 10.0) │
 │ Port 3000   │    │ Port 5001   │    │ Port 5002   │
 └────────────┬┘    └──────┬──────┘    └──────┬──────┘
              │             │                 │
@@ -77,7 +77,7 @@ This repository contains a complete, production-ready enterprise deployment of a
 ### Containerization
 - ✅ **Dockerfiles** (Multi-stage, production-optimized)
   - `frontend/Dockerfile` - Node.js alpine
-  - `bff/Dockerfile` - .NET 8.0 runtime
+  - `bff/Dockerfile` - .NET 10.0 runtime
   - `api/Dockerfile` - .NET 10.0 runtime
   - `.dockerignore` - Optimize build context
 
@@ -115,7 +115,6 @@ This repository contains a complete, production-ready enterprise deployment of a
 ```bash
 # Install tools
 - Azure CLI: https://learn.microsoft.com/cli/azure/install-azure-cli
-- .NET 8.0 SDK: https://dotnet.microsoft.com/download
 - .NET 10.0 SDK: https://dotnet.microsoft.com/download
 - Node.js 20+: https://nodejs.org/
 - Docker: https://www.docker.com/products/docker-desktop

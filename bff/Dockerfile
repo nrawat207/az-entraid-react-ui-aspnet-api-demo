@@ -12,18 +12,7 @@ RUN dotnet restore
 # Copy all source code
 COPY bff/ ./
 
-# Build the application
-RUN dotnet build -c Release -o /app/build
-
-# Publish stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS publish
-
-WORKDIR /build
-
-# Copy built files from builder
-COPY --from=builder /app/build ./
-
-# Publish the application
+# Build and publish the application
 RUN dotnet publish -c Release -o /app/publish
 
 # Runtime stage
@@ -34,8 +23,8 @@ WORKDIR /app
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Copy published app from publish stage
-COPY --from=publish /app/publish .
+# Copy published app from builder stage
+COPY --from=builder /app/publish .
 
 # Expose port 5001 (HTTPS) and 5000 (HTTP for internal)
 EXPOSE 5001 5000

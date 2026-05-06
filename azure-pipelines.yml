@@ -274,14 +274,14 @@ stages:
       displayName: 'Login to ACR'
       inputs:
         command: 'login'
-        containerRegistry: 'AzureServiceConnection'
+        containerRegistry: 'AcrConnection'
 
     # Build and push frontend image
     - task: Docker@2
       displayName: 'Build & push frontend image'
       inputs:
         command: 'buildAndPush'
-        containerRegistry: 'AzureServiceConnection'
+        containerRegistry: 'AcrConnection'
         repository: '$(imageRepository)/frontend'
         Dockerfile: '$(dockerfileFrontend)'
         buildContext: '$(Build.SourcesDirectory)'
@@ -295,7 +295,7 @@ stages:
       displayName: 'Build & push BFF image'
       inputs:
         command: 'buildAndPush'
-        containerRegistry: 'AzureServiceConnection'
+        containerRegistry: 'AcrConnection'
         repository: '$(imageRepository)/bff'
         Dockerfile: '$(dockerfileBff)'
         buildContext: '$(Build.SourcesDirectory)'
@@ -309,7 +309,7 @@ stages:
       displayName: 'Build & push API image'
       inputs:
         command: 'buildAndPush'
-        containerRegistry: 'AzureServiceConnection'
+        containerRegistry: 'AcrConnection'
         repository: '$(imageRepository)/api'
         Dockerfile: '$(dockerfileApi)'
         buildContext: '$(Build.SourcesDirectory)'

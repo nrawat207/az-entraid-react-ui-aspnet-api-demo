@@ -329,7 +329,7 @@ stages:
 - stage: DeployToDev
   displayName: 'Deploy to Development'
   dependsOn: BuildAndPushDocker
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 
   jobs:
   - deployment: DeployContainerApps

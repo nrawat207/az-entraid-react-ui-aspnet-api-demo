@@ -20,3 +20,17 @@ dist/
 .DS_Store
 .vscode/
 *.log
+
+# .azure
+.azure/telemetry/
+.azure/az.json
+.azure/az.sess
+.azure/azureProfile.json
+.azure/commandIndex.json
+.azure/extensionHelpIndex.json
+.azure/extensionIndex.json
+.azure/helpIndex.json   
+.azure/versionCheck.json    
+
+.dotnet-home/* 
+

@@ -15,7 +15,15 @@ if (!string.IsNullOrEmpty(keyVaultUri))
 }
 
 // Add Application Insights
-//builder.Services.AddApplicationInsightsTelemetry();
+var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+builder.Services.AddApplicationInsightsTelemetry(options =>
+{
+    if (!string.IsNullOrWhiteSpace(appInsightsConnectionString) &&
+        !appInsightsConnectionString.StartsWith("{{", StringComparison.Ordinal))
+    {
+        options.ConnectionString = appInsightsConnectionString;
+    }
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();

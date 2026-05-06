@@ -3,7 +3,9 @@ using './main.bicep'
 param location = 'eastus'
 param environment = 'dev'
 param projectName = 'entra-demo'
-param registryUsername = 'registryUsername'
-param registryPassword = 'registryPassword'
+// IMPORTANT: The following values are placeholders and MUST be overridden by pipeline with actual secrets
+// Never commit real passwords to this file
+param registryUsername = 'registryUsernameFromDevOps'
+param registryPassword = 'registryPasswordFromDevOps'
 param sqlAdminUsername = 'sqladmin'
-param sqlAdminPassword = 'P@ssw0rd123!Change'
+param sqlAdminPassword = 'sqlPasswordFromDevOps'

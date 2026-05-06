@@ -5,14 +5,17 @@ param registryUrl string
 param registryUsername string
 @secure()
 param registryPassword string
+param imageRepository string = 'entra-demo'
 param keyVaultUri string
-param appInsightsConnectionString string
-param apiBaseUrl string
-param bffRedirectUri string
+
+var frontendAppName = 'frontend-${environment}'
+var bffAppName = 'bff-${environment}'
+var apiAppName = 'api-${environment}'
+var internalApiBaseUrl = 'http://${apiAppName}'
 
 // Frontend Container App
-resource frontendContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'frontend-${environment}'
+resource frontendContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
+  name: frontendAppName
   location: location
   identity: {
     type: 'SystemAssigned'
@@ -51,7 +54,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: 'frontend'
-          image: '${registryUrl}/frontend:latest'
+          image: '${registryUrl}/${imageRepository}/frontend:latest'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -59,7 +62,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'VITE_API_BASE_URL'
-              value: apiBaseUrl
+              value: ''
             }
           ]
         }
@@ -67,14 +70,6 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
       scale: {
         minReplicas: 1
         maxReplicas: 3
-        rules: [
-          {
-            name: 'cpu'
-            custom: {
-              rule: 'cpu < 70'
-            }
-          }
-        ]
       }
     }
   }
@@ -85,8 +80,8 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // BFF Container App
-resource bffContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'bff-${environment}'
+resource bffContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
+  name: bffAppName
   location: location
   identity: {
     type: 'SystemAssigned'
@@ -111,16 +106,32 @@ resource bffContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'keyvault-uri'
           value: keyVaultUri
         }
-        {
-          name: 'app-insights-connection-string'
-          value: appInsightsConnectionString
-        }
       ]
       ingress: {
         external: true
         targetPort: 5001
         transport: 'Auto'
         allowInsecure: false
+        corsPolicy: {
+          allowedOrigins: [
+            'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
+          ]
+          allowedMethods: [
+            'GET'
+            'POST'
+            'PUT'
+            'DELETE'
+            'OPTIONS'
+          ]
+          allowedHeaders: [
+            '*'
+          ]
+          exposeHeaders: [
+            '*'
+          ]
+          maxAge: 600
+          allowCredentials: true
+        }
         traffic: [
           {
             latestRevision: true
@@ -128,32 +139,12 @@ resource bffContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
           }
         ]
       }
-      corsPolicy: {
-        allowedOrigins: [
-          'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
-        ]
-        allowedMethods: [
-          'GET'
-          'POST'
-          'PUT'
-          'DELETE'
-          'OPTIONS'
-        ]
-        allowedHeaders: [
-          '*'
-        ]
-        exposeHeaders: [
-          '*'
-        ]
-        maxAge: 600
-        allowCredentials: true
-      }
     }
     template: {
       containers: [
         {
           name: 'bff'
-          image: '${registryUrl}/bff:latest'
+          image: '${registryUrl}/${imageRepository}/bff:latest'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -168,16 +159,12 @@ resource bffContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
               secretRef: 'keyvault-uri'
             }
             {
-              name: 'ApplicationInsights__ConnectionString'
-              secretRef: 'app-insights-connection-string'
-            }
-            {
               name: 'AzureAd__RedirectUri'
-              value: 'https://${bffContainerApp.properties.configuration.ingress.fqdn}'
+              value: ''
             }
             {
               name: 'Api__BaseUrl'
-              value: apiBaseUrl
+              value: internalApiBaseUrl
             }
           ]
         }
@@ -185,14 +172,6 @@ resource bffContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
       scale: {
         minReplicas: 1
         maxReplicas: 3
-        rules: [
-          {
-            name: 'cpu'
-            custom: {
-              rule: 'cpu < 70'
-            }
-          }
-        ]
       }
     }
   }
@@ -203,8 +182,8 @@ resource bffContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // API Container App
-resource apiContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'api-${environment}'
+resource apiContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
+  name: apiAppName
   location: location
   identity: {
     type: 'SystemAssigned'
@@ -229,16 +208,32 @@ resource apiContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'keyvault-uri'
           value: keyVaultUri
         }
-        {
-          name: 'app-insights-connection-string'
-          value: appInsightsConnectionString
-        }
       ]
       ingress: {
         external: false
         targetPort: 5002
         transport: 'Auto'
         allowInsecure: false
+        corsPolicy: {
+          allowedOrigins: [
+            'https://${bffContainerApp.properties.configuration.ingress.fqdn}'
+          ]
+          allowedMethods: [
+            'GET'
+            'POST'
+            'PUT'
+            'DELETE'
+            'OPTIONS'
+          ]
+          allowedHeaders: [
+            '*'
+          ]
+          exposeHeaders: [
+            '*'
+          ]
+          maxAge: 600
+          allowCredentials: true
+        }
         traffic: [
           {
             latestRevision: true
@@ -246,32 +241,12 @@ resource apiContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
           }
         ]
       }
-      corsPolicy: {
-        allowedOrigins: [
-          'https://${bffContainerApp.properties.configuration.ingress.fqdn}'
-        ]
-        allowedMethods: [
-          'GET'
-          'POST'
-          'PUT'
-          'DELETE'
-          'OPTIONS'
-        ]
-        allowedHeaders: [
-          '*'
-        ]
-        exposeHeaders: [
-          '*'
-        ]
-        maxAge: 600
-        allowCredentials: true
-      }
     }
     template: {
       containers: [
         {
           name: 'api'
-          image: '${registryUrl}/api:latest'
+          image: '${registryUrl}/${imageRepository}/api:latest'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -285,24 +260,12 @@ resource apiContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
               name: 'KeyVault__Uri'
               secretRef: 'keyvault-uri'
             }
-            {
-              name: 'ApplicationInsights__ConnectionString'
-              secretRef: 'app-insights-connection-string'
-            }
           ]
         }
       ]
       scale: {
         minReplicas: 1
         maxReplicas: 3
-        rules: [
-          {
-            name: 'cpu'
-            custom: {
-              rule: 'cpu < 70'
-            }
-          }
-        ]
       }
     }
   }
@@ -314,7 +277,7 @@ resource apiContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
 
 output frontendUrl string = 'https://${frontendContainerApp.properties.configuration.ingress.fqdn}'
 output bffUrl string = 'https://${bffContainerApp.properties.configuration.ingress.fqdn}'
-output apiUrl string = 'http://${apiContainerApp.properties.configuration.ingress.fqdn}:5002'
+output apiUrl string = 'https://${apiContainerApp.properties.configuration.ingress.fqdn}'
 output frontendPrincipalId string = frontendContainerApp.identity.principalId
 output bffPrincipalId string = bffContainerApp.identity.principalId
 output apiPrincipalId string = apiContainerApp.identity.principalId

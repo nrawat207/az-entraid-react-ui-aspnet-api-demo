@@ -2,9 +2,8 @@ param location string
 param environment string
 param containerAppsEnvironmentName string
 param logAnalyticsWorkspaceId string
-param logAnalyticsWorkspaceName string
 
-resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2026-01-01' = {
   name: containerAppsEnvironmentName
   location: location
   properties: {

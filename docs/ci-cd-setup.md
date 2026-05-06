@@ -1,16 +1,372 @@
 # CI/CD Pipeline Setup Guide
 
+## Pipeline Architecture
+
+The Azure DevOps pipeline automates the complete build and deployment workflow:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Code Push (develop/main)                    │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                ┌──────────────▼──────────────┐
+                │  STAGE 0: VALIDATE          │
+                │  - Bicep syntax check       │
+                │  - Parameter validation     │
+                └──────────────┬──────────────┘
+                               │
+                ┌──────────────▼──────────────┐
+                │  STAGE 1: WHAT-IF           │
+                │  - Preview all changes      │
+                │  - Review before deploy     │
+                └──────────────┬──────────────┘
+                               │
+                ┌──────────────▼──────────────┐
+                │  STAGE 2: BUILD & TEST      │
+                │  - Frontend build           │
+                │  - BFF build                │
+                │  - API build                │
+                │  - Run unit tests           │
+                └──────────────┬──────────────┘
+                               │
+                ┌──────────────▼──────────────┐
+                │  STAGE 3: DOCKER            │
+                │  - Build images             │
+                │  - Push to ACR              │
+                └──────────────┬──────────────┘
+                               │
+                ┌──────────────▼──────────────┐
+                │  STAGE 4: DEPLOY            │
+                │  (if develop branch)        │
+                │  - Deploy Bicep infra       │
+                │  - Update container apps    │
+                │  - Health checks            │
+                └──────────────────────────────┘
+```
+
 ## Prerequisites
 
-Before running the Azure DevOps pipeline, ensure you have:
+### 1. Azure DevOps Setup
 
-1. **Azure DevOps Project** created
-2. **Service Connections** configured:
-   - `AzureServiceConnection` - For dev environment
-   - `AzureServiceConnectionProd` - For prod environment
-   - `AcrConnection` - For Azure Container Registry
-3. **Variable Groups** in Azure DevOps
-4. **GitHub/Azure Repos** repository connected
+- Azure DevOps project created
+- Git repository connected (GitHub or Azure Repos)
+- Service connections configured
+- Variable groups created
+
+### 2. Service Connections
+
+In **Azure DevOps → Project Settings → Service connections**, create:
+
+#### a) Azure Resource Manager (Dev)
+- **Name:** `AzureServiceConnection`
+- **Scope:** Subscription or Resource Group
+- **Resource Group:** `entra-demo-dev-rg`
+
+#### b) Azure Container Registry
+- **Name:** `AcrConnection`
+- **Registry:** `entrademodevacr.azurecr.io`
+- **Authentication:** Admin account or Service Principal
+
+### 3. Variable Groups
+
+In **Azure DevOps → Pipelines → Library → Variable Groups**:
+
+#### Group: `entra-demo-dev-vars`
+Create and mark secrets with lock icon:
+
+```
+Non-Secret Values:
+- sqlAdminUsernameDev = sqladmin
+
+Secret Values (Mark as Secret ⭐):
+- registryUsername = <your-acr-admin-username>
+- registryPassword = <your-acr-admin-password>
+- sqlAdminPasswordDev = <strong-password>
+- BffTenantId = <your-entra-tenant-id>
+- BffClientId = <bff-app-client-id>
+- BffClientSecret = <bff-app-secret>
+- ApiAudience = api://<api-app-client-id>
+```
+
+**How to Mark as Secret:**
+1. Click the lock icon next to the variable
+2. It will show a padlock 🔒
+3. Value will be masked in logs
+
+## Pipeline Stages Explained
+
+### Stage 0: Validate Infrastructure
+
+Validates Bicep templates WITHOUT making changes.
+
+```bash
+az deployment group validate \
+  --resource-group entra-demo-dev-rg \
+  --template-file infra/main.bicep \
+  --parameters infra/main.bicepparam
+```
+
+**Checks:**
+✅ Bicep syntax is correct  
+✅ All parameters are valid  
+✅ Resource types exist  
+✅ No duplicate resource names  
+
+**Fails If:**
+❌ Syntax errors found  
+❌ Required parameters missing  
+❌ Resource group doesn't exist  
+❌ Insufficient permissions
+
+### Stage 1: What-If (Preview)
+
+Shows all changes that WILL be made during deployment.
+
+```bash
+az deployment group what-if \
+  --resource-group entra-demo-dev-rg \
+  --template-file infra/main.bicep
+```
+
+**Output:**
+- Which resources will be Created
+- Which will be Modified
+- Which will be Deleted
+
+**Use This To:**
+- Review infrastructure changes before they happen
+- Catch accidental deletions
+- Understand deployment impact
+
+### Stage 2: Build & Test
+
+Builds all applications and runs tests.
+
+- **Frontend:** npm build, ESLint
+- **BFF:** dotnet build, unit tests
+- **API:** dotnet build, unit tests
+
+**Artifacts Generated:**
+- `frontend/dist/` - Built React app
+- `bff/` - Compiled .NET binaries
+- `api/` - Compiled .NET binaries
+
+### Stage 3: Build & Push Docker
+
+Creates Docker images and pushes to Azure Container Registry.
+
+**Images Created:**
+- `entrademodevacr.azurecr.io/entra-demo/frontend:<build-id>`
+- `entrademodevacr.azurecr.io/entra-demo/bff:<build-id>`
+- `entrademodevacr.azurecr.io/entra-demo/api:<build-id>`
+
+**Also Tagged:**
+- `latest` - Most recent build
+- `<branch>-<build-id>` - Branch tracking
+
+### Stage 4: Deploy
+
+Deploys infrastructure and applications (only on `develop` branch).
+
+**Steps:**
+1. Deploy Bicep infrastructure
+   - Key Vault with secrets
+   - SQL Database
+   - Container Registry
+   - Container Apps Environment
+   - Container Apps (Frontend, BFF, API)
+
+2. Update container app images with new builds
+
+3. Verify health checks pass
+   - BFF responds to `/health`
+   - API provisioning state is "Succeeded"
+
+## Triggering the Pipeline
+
+### Automatic Triggers
+
+Pipeline automatically runs when:
+- Code is pushed to `develop` branch (deploys to dev)
+- Code is pushed to `main` branch (requires approval before prod)
+- Pull request is created to `main` or `develop`
+
+### Manual Trigger
+
+In **Azure DevOps → Pipelines**:
+1. Click your pipeline
+2. Click "Run pipeline"
+3. Select branch
+4. Click "Run"
+
+## Environment-Specific Settings
+
+### Development (`develop` branch)
+
+| Setting | Value |
+|---------|-------|
+| **Auto-Deploy** | Yes |
+| **Approval** | None required |
+| **Database** | Basic tier (2GB) |
+| **Container Replicas** | 1 instance |
+| **Secrets Storage** | Key Vault |
+| **Logs Retention** | 30 days |
+
+### Production (`main` branch)
+
+```yaml
+# Currently commented out - uncomment when ready
+# Requires manual approval before deployment
+# Uses different resource group (entra-demo-prod-rg)
+# Uses different database tier (Standard/Premium)
+# Higher replica count (2-3 instances)
+```
+
+## Secrets Management
+
+### How Secrets Are Handled
+
+1. **In Variable Groups** (Pipeline Secrets)
+   - Marked with lock icon 🔒
+   - Masked in logs
+   - Passed as environment variables
+   - Never visible in pipeline output
+
+2. **In Key Vault** (Runtime Secrets)
+   - SQL admin password
+   - Entra ID credentials
+   - App Insights connection string
+   - Accessed by containers via managed identity
+
+3. **Never in Parameter Files**
+   - `main.bicepparam` contains placeholders only
+   - Real values passed at deployment time
+
+### Adding New Secrets to Pipeline
+
+1. Go to **Pipelines → Library → Variable Groups**
+2. Click `entra-demo-dev-vars`
+3. Click "+ Add"
+4. Enter secret name and value
+5. Click lock icon to mark as secret ⭐
+6. Click "Save"
+
+Pipeline automatically picks up new variables.
+
+## Monitoring & Troubleshooting
+
+### View Pipeline Runs
+
+1. **Azure DevOps → Pipelines**
+2. Select your pipeline
+3. Click on a run to view details
+4. Click "Logs" for detailed output
+
+### Common Issues
+
+#### Validation Fails
+
+**Error:** `Template validation failed`
+
+**Fix:**
+```bash
+# Check error details in pipeline logs
+# Likely causes:
+# - Resource group doesn't exist: az group create ...
+# - Missing secret variables: Check Variable Groups
+# - Parameter type mismatch: Check main.bicep parameters
+
+az deployment group validate \
+  --resource-group entra-demo-dev-rg \
+  --template-file infra/main.bicep \
+  --parameters main.bicepparam \
+  --parameters \
+    registryUsername="test" \
+    registryPassword="test" \
+    sqlAdminPassword="test"
+```
+
+#### Docker Build Fails
+
+**Error:** `Docker build failed` or `ACR push failed`
+
+**Fix:**
+```bash
+# Verify ACR credentials in Variable Group
+az acr login --name entrademodevacr
+
+# Check ACR exists
+az acr list --output table
+
+# Check Docker images built locally
+docker images | grep entra-demo
+```
+
+#### Deployment Fails
+
+**Error:** `Container App won't start` or `Health check failed`
+
+**Fix:**
+```bash
+# Check container app logs
+az containerapp logs show \
+  --name bff-dev \
+  --resource-group entra-demo-dev-rg
+
+# Check provisioning state
+az containerapp show \
+  --name bff-dev \
+  --resource-group entra-demo-dev-rg \
+  --query "properties.provisioningState"
+
+# Verify Key Vault access
+az keyvault secret list \
+  --vault-name <vault-name>
+```
+
+## Manual Pipeline Edit
+
+To modify the pipeline:
+
+1. **Azure DevOps → Pipelines → Your Pipeline**
+2. Click "Edit"
+3. Pipeline YAML editor opens
+4. Make changes to `azure-pipelines.yml`
+5. Click "Save" → "Save"
+
+Or edit file directly in repo:
+```bash
+# Edit azure-pipelines.yml in your editor
+git add azure-pipelines.yml
+git commit -m "Update pipeline"
+git push origin develop
+```
+
+## Security Best Practices
+
+✅ **DO:**
+- Store all secrets in Variable Groups or Key Vault
+- Mark sensitive variables with lock icon
+- Use managed identities for Azure resource access
+- Review What-If before every deployment
+- Enable branch policies requiring PR reviews
+- Rotate secrets regularly
+
+❌ **DON'T:**
+- Commit passwords to git
+- Pass secrets as plain text in scripts
+- Use service principals unnecessarily
+- Skip What-If preview
+- Allow direct pushes to main branch
+
+## Next Steps
+
+1. [Set up Entra ID for authentication](../docs/entra-id-prod-setup.md)
+2. [Validate infrastructure with Bicep scripts](../.azure/infra-validation-deployment.md)
+3. [Deploy to production](../docs/DEPLOYMENT.md)
+4. [Monitor with Application Insights](../docs/DEPLOYMENT.md#observability)
+
+
 
 ## Step 1: Create Service Connections
 

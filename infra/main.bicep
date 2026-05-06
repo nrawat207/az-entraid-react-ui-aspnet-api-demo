@@ -1,6 +1,6 @@
 targetScope = 'resourceGroup'
 
-param location string = resourceGroup().location
+param location string
 param environment string
 param projectName string
 param registryUsername string
@@ -9,14 +9,9 @@ param registryPassword string
 param sqlAdminUsername string
 @secure()
 param sqlAdminPassword string
+param imageRepository string = 'entra-demo'
 
-var tags = {
-  environment: environment
-  project: projectName
-  createdDate: utcNow('u')
-}
-
-var uniqueSuffix = uniqueString(resourceGroup().id)
+var uniqueSuffix = uniqueString(projectName, environment, location)
 var keyVaultName = '${projectName}-kv-${uniqueSuffix}'
 var logAnalyticsWorkspaceName = '${projectName}-law-${environment}'
 var appInsightsName = '${projectName}-ai-${environment}'
@@ -24,9 +19,6 @@ var sqlServerName = '${projectName}-sql-${uniqueSuffix}'
 var sqlDatabaseName = '${projectName}db'
 var containerRegistryName = '${projectName}acr${replace(uniqueSuffix, '-', '')}'
 var containerAppsEnvironmentName = '${projectName}-cae-${environment}'
-
-// Get current user principal ID for Key Vault access
-var currentUserPrincipalId = 'placeholder' // This will be replaced during deployment if needed
 
 // Deploy monitoring first (Log Analytics + App Insights)
 module monitoring 'modules/monitoring.bicep' = {
@@ -70,7 +62,6 @@ module containerAppsEnv 'modules/container-apps-env.bicep' = {
     environment: environment
     containerAppsEnvironmentName: containerAppsEnvironmentName
     logAnalyticsWorkspaceId: monitoring.outputs.logAnalyticsWorkspaceId
-    logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
   }
 }
 
@@ -83,7 +74,10 @@ module keyVault 'modules/keyvault.bicep' = {
     keyVaultName: keyVaultName
     environment: environment
     tenantId: subscription().tenantId
-    managedIdentityPrincipalId: 'placeholder' // Will be updated after container apps are created
+    appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
+    sqlAdminPassword: sqlAdminPassword
+    sqlServerFqdn: sql.outputs.sqlServerFqdn
+    sqlDatabaseName: sql.outputs.sqlDatabaseName
   }
 }
 
@@ -97,17 +91,21 @@ module containerApps 'modules/container-apps.bicep' = {
     registryUrl: containerRegistry.outputs.registryUrl
     registryUsername: registryUsername
     registryPassword: registryPassword
+    imageRepository: imageRepository
     keyVaultUri: keyVault.outputs.keyVaultUri
-    appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
-    apiBaseUrl: containerApps.outputs.apiUrl
-    bffRedirectUri: containerApps.outputs.bffUrl
   }
-  dependsOn: [
-    containerAppsEnv
-    containerRegistry
-    keyVault
-    monitoring
-  ]
+}
+
+module keyVaultAccessPolicies 'modules/keyvault-access-policies.bicep' = {
+  name: 'keyvault-access-policies'
+  params: {
+    keyVaultName: keyVault.outputs.keyVaultName
+    tenantId: subscription().tenantId
+    principalIds: [
+      containerApps.outputs.bffPrincipalId
+      containerApps.outputs.apiPrincipalId
+    ]
+  }
 }
 
 // Outputs
@@ -125,6 +123,7 @@ output infrastructureInfo object = {
   appInsightsName: monitoring.outputs.appInsightsName
   logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
   sqlServerName: sql.outputs.sqlServerName
+  sqlServerFqdn: sql.outputs.sqlServerFqdn
   sqlDatabaseName: sql.outputs.sqlDatabaseName
   containerRegistryName: containerRegistry.outputs.registryName
   containerRegistryUrl: containerRegistry.outputs.registryUrl
@@ -142,4 +141,5 @@ output managedIdentities object = {
   apiPrincipalId: containerApps.outputs.apiPrincipalId
 }
 
-output sqlConnectionString string = sql.outputs.connectionString
+// Note: SQL Connection String is now stored securely in Key Vault (SqlConnectionString secret)
+// Applications should fetch it from Key Vault using managed identities

@@ -6,46 +6,67 @@
 # CONTAINER REGISTRY
 # ============================================================================
 variables:
-  containerRegistryName: 'entrademodevacr'  # ACR name (without .azurecr.io)
-  registryUsername: ''  # Set via Azure DevOps secret variables
-  registryPassword: ''  # Set via Azure DevOps secret variables
+- name: containerRegistryName
+  value: 'entrademodevacr'  # ACR name (without .azurecr.io)
+- name: registryUsername
+  value: ''  # Set via Azure DevOps secret variables
+- name: registryPassword
+  value: ''  # Set via Azure DevOps secret variables
 
 # ============================================================================
 # DEVELOPMENT ENVIRONMENT
 # ============================================================================
-  # Azure Subscription
-  resourceGroupDev: 'entra-demo-dev-rg'
-  azureLocationDev: 'eastus'
-  subscriptionNameDev: 'Visual Studio Professional'
+# Azure Subscription
+- name: resourceGroupDev
+  value: 'entra-demo-dev-rg'
+- name: azureLocationDev
+  value: 'eastus'
+- name: subscriptionNameDev
+  value: 'Azure subscription 1'
   
-  # SQL Admin
-  sqlAdminUsernameDev: 'sqladmin'
-  sqlAdminPasswordDev: ''  # Set via secret variable
+# SQL Admin
+- name: sqlAdminUsernameDev
+  value: 'sqladmin'
+- name: sqlAdminPasswordDev
+  value: ''  # Set via secret variable
 
 # ============================================================================
 # PRODUCTION ENVIRONMENT
 # ============================================================================
-  # Azure Subscription
-  resourceGroupProd: 'entra-demo-prod-rg'
-  azureLocationProd: 'eastus'
-  subscriptionNameProd: 'Visual Studio Professional'
+# Azure Subscription
+- name: resourceGroupProd
+  value: 'entra-demo-prod-rg'
+- name: azureLocationProd
+  value: 'eastus'
+- name: subscriptionNameProd
+  value: 'Azure subscription 1'
   
-  # SQL Admin
-  sqlAdminUsernameProd: 'prodadmin'
-  sqlAdminPasswordProd: ''  # Set via secret variable
+# SQL Admin
+- name: sqlAdminUsernameProd
+  value: 'prodadmin'
+- name: sqlAdminPasswordProd
+  value: ''  # Set via secret variable
 
 # ============================================================================
 # IMAGE NAMING
 # ============================================================================
-  imageRepository: 'entra-demo'
-  frontendImage: 'entra-demo/frontend'
-  bffImage: 'entra-demo/bff'
-  apiImage: 'entra-demo/api'
+- name: imageRepository
+  value: 'entra-demo'
+- name: frontendImage
+  value: 'entra-demo/frontend'
+- name: bffImage
+  value: 'entra-demo/bff'
+- name: apiImage
+  value: 'entra-demo/api'
 
 # ============================================================================
 # BUILD SETTINGS
 # ============================================================================
-  buildConfiguration: 'Release'
-  dotnetVersion_net8: '8.0.x'
-  dotnetVersion_net10: '10.0.x'
-  nodeVersion: '20.x'
+- name: buildConfiguration
+  value: 'Release'
+- name: dotnetVersion_net8
+  value: '8.0.x'
+- name: dotnetVersion_net10
+  value: '10.0.x'
+- name: nodeVersion
+  value: '20.x'

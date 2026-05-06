@@ -71,11 +71,22 @@ ASP.NET Core protected API
 - A Microsoft Entra ID tenant
 - Two Entra app registrations: one for the BFF web app and one for the protected API
 
-Trust the local ASP.NET Core HTTPS development certificate if you have not already:
+## ✅ Security & Secrets Management
 
-```powershell
-dotnet dev-certs https --trust
-```
+**Zero Hardcoded Secrets:**
+- All sensitive values stored in Azure DevOps Variable Groups
+- Secrets marked with lock icon 🔒 - masked in logs
+- Password parameters passed at deployment time only
+- Runtime secrets stored in Azure Key Vault
+- Container apps access Key Vault using managed identities
+
+**Infrastructure Code Security:**
+- No passwords in parameter files (`main.bicepparam`)
+- No password outputs from modules
+- `@secure()` decorator on all secret parameters
+- What-If preview before every deployment
+
+See [CI/CD Setup Guide](docs/ci-cd-setup.md) for secrets configuration.
 
 ## Microsoft Entra ID Setup
 

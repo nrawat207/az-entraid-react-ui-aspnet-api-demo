@@ -2,7 +2,12 @@ param location string
 param keyVaultName string
 param environment string
 param tenantId string
-param managedIdentityPrincipalId string
+@secure()
+param appInsightsConnectionString string
+@secure()
+param sqlAdminPassword string
+param sqlServerFqdn string
+param sqlDatabaseName string
 
 var skuName = 'standard'
 var enabledForDeployment = true
@@ -11,7 +16,7 @@ var enabledForDiskEncryption = false
 var enableSoftDelete = true
 var softDeleteRetentionDays = 7
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+resource keyVault 'Microsoft.KeyVault/vaults@2025-05-01' = {
   name: keyVaultName
   location: location
   properties: {
@@ -20,22 +25,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
       name: skuName
       family: 'A'
     }
-    accessPolicies: [
-      {
-        tenantId: tenantId
-        objectId: managedIdentityPrincipalId
-        permissions: {
-          secrets: [
-            'get'
-            'list'
-          ]
-          certificates: [
-            'get'
-            'list'
-          ]
-        }
-      }
-    ]
+    accessPolicies: []
     enabledForDeployment: enabledForDeployment
     enabledForTemplateDeployment: enabledForTemplateDeployment
     enabledForDiskEncryption: enabledForDiskEncryption
@@ -81,11 +71,30 @@ resource apiAudience 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+// SQL Admin Password - used by applications to construct connection strings
+resource sqlAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'SqlAdminPassword'
+  properties: {
+    value: sqlAdminPassword
+  }
+}
+
+// SQL Connection String - constructed with server details and password reference
+// Note: Applications should fetch SqlAdminPassword from Key Vault and construct the connection string
 resource sqlConnectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'SqlConnectionString'
   properties: {
-    value: 'placeholder-update-after-sql-creation'
+    value: 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=sqladmin;Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+  }
+}
+
+resource appInsightsConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'ApplicationInsights--ConnectionString'
+  properties: {
+    value: appInsightsConnectionString
   }
 }
 

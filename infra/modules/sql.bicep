@@ -6,7 +6,7 @@ param sqlAdminUsername string
 @secure()
 param sqlAdminPassword string
 
-resource sqlServer 'Microsoft.Sql/servers@2021-08-01-preview' = {
+resource sqlServer 'Microsoft.Sql/servers@2025-02-01-preview' = {
   name: sqlServerName
   location: location
   properties: {
@@ -23,7 +23,7 @@ resource sqlServer 'Microsoft.Sql/servers@2021-08-01-preview' = {
 }
 
 // Allow all Azure services to access SQL Server
-resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2021-08-01-preview' = {
+resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2025-02-01-preview' = {
   parent: sqlServer
   name: 'AllowAllWindowsAzureIps'
   properties: {
@@ -32,7 +32,7 @@ resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2021-08-01-prev
   }
 }
 
-resource sqlDatabase 'Microsoft.Sql/servers/databases@2021-08-01-preview' = {
+resource sqlDatabase 'Microsoft.Sql/servers/databases@2025-02-01-preview' = {
   parent: sqlServer
   name: sqlDatabaseName
   location: location
@@ -55,4 +55,6 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2021-08-01-preview' = {
 output sqlServerName string = sqlServer.name
 output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
-output connectionString string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+// Note: Connection strings should be constructed in applications or fetched from Key Vault
+// Never output passwords from infrastructure code
+output connectionStringTemplate string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Persist Security Info=False;User ID=${sqlAdminUsername};Password=<PASSWORD_FROM_KEYVAULT>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'

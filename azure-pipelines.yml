@@ -78,30 +78,31 @@ stages:
       displayName: 'Validate Bicep - Dev'
       inputs:
         azureSubscription: 'AzureServiceConnection'
-        scriptType: 'bash'
+        scriptType: 'ps'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Validating Bicep templates for development environment..."
-          az deployment group validate \
-            --resource-group $(resourceGroupDev) \
-            --template-file infra/main.bicep \
-            --parameters infra/main.bicepparam \
-            --parameters \
-              location=$(azureLocationDev) \
-              environment=dev \
-              projectName=entra-demo \
-              imageRepository=$(imageRepository) \
-              registryUsername=$(registryUsername) \
-              registryPassword=$(registryPassword) \
-              sqlAdminUsername=$(sqlAdminUsernameDev) \
-              sqlAdminPassword=$(sqlAdminPasswordDev)
+          Write-Host "Validating Bicep templates for development environment..."
           
-          if [ $? -eq 0 ]; then
-            echo "✓ Bicep validation successful - no syntax errors"
-          else
-            echo "✗ Bicep validation failed"
+          az deployment group validate `
+            --resource-group "$(resourceGroupDev)" `
+            --template-file "infra/main.bicep" `
+            --parameters "infra/main.bicepparam" `
+            --parameters `
+              location="$(azureLocationDev)" `
+              environment="dev" `
+              projectName="entra-demo" `
+              imageRepository="$(imageRepository)" `
+              registryUsername="$(registryUsername)" `
+              registryPassword="$(registryPassword)" `
+              sqlAdminUsername="$(sqlAdminUsernameDev)" `
+              sqlAdminPassword="$(sqlAdminPasswordDev)"
+          
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Bicep validation successful - no syntax errors" -ForegroundColor Green
+          } else {
+            Write-Host "✗ Bicep validation failed" -ForegroundColor Red
             exit 1
-          fi
+          }
 
 # ============================================================================
 # STAGE 1: WHAT-IF (Preview Changes)
@@ -121,26 +122,27 @@ stages:
       displayName: 'Run What-If - Dev'
       inputs:
         azureSubscription: 'AzureServiceConnection'
-        scriptType: 'bash'
+        scriptType: 'ps'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Analyzing what changes will be made to development infrastructure..."
-          az deployment group what-if \
-            --resource-group $(resourceGroupDev) \
-            --template-file infra/main.bicep \
-            --parameters infra/main.bicepparam \
-            --parameters \
-              location=$(azureLocationDev) \
-              environment=dev \
-              projectName=entra-demo \
-              imageRepository=$(imageRepository) \
-              registryUsername=$(registryUsername) \
-              registryPassword=$(registryPassword) \
-              sqlAdminUsername=$(sqlAdminUsernameDev) \
-              sqlAdminPassword=$(sqlAdminPasswordDev)
+          Write-Host "Analyzing what changes will be made to development infrastructure..."
           
-          echo ""
-          echo "What-If Summary: Review changes above before deployment"
+          az deployment group what-if `
+            --resource-group "$(resourceGroupDev)" `
+            --template-file "infra/main.bicep" `
+            --parameters "infra/main.bicepparam" `
+            --parameters `
+              location="$(azureLocationDev)" `
+              environment="dev" `
+              projectName="entra-demo" `
+              imageRepository="$(imageRepository)" `
+              registryUsername="$(registryUsername)" `
+              registryPassword="$(registryPassword)" `
+              sqlAdminUsername="$(sqlAdminUsernameDev)" `
+              sqlAdminPassword="$(sqlAdminPasswordDev)"
+          
+          Write-Host ""
+          Write-Host "What-If Summary: Review changes above before deployment"
 
 # ============================================================================
 # STAGE 2: BUILD & TEST
@@ -344,37 +346,47 @@ stages:
             displayName: 'Deploy Bicep infrastructure'
             inputs:
               azureSubscription: 'AzureServiceConnection'
-              scriptType: 'bash'
+              scriptType: 'ps'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                required_vars=(
-                  "REGISTRY_USERNAME"
-                  "REGISTRY_PASSWORD"
-                  "SQL_ADMIN_USERNAME"
+                # Validate required variables
+                $requiredVars = @(
+                  "REGISTRY_USERNAME",
+                  "REGISTRY_PASSWORD",
+                  "SQL_ADMIN_USERNAME",
                   "SQL_ADMIN_PASSWORD"
                 )
-
-                for var_name in "${required_vars[@]}"; do
-                  var_value="${!var_name}"
-                  if [ -z "$var_value" ] || [[ "$var_value" == \$\(* ]]; then
-                    echo "Missing required pipeline variable: $var_name"
+                
+                foreach ($varName in $requiredVars) {
+                  $varValue = [System.Environment]::GetEnvironmentVariable($varName)
+                  if ([string]::IsNullOrEmpty($varValue)) {
+                    Write-Host "Missing required pipeline variable: $varName" -ForegroundColor Red
                     exit 1
-                  fi
-                done
-
-                az deployment group create \
-                  --resource-group $(resourceGroupDev) \
-                  --template-file infra/main.bicep \
-                  --parameters infra/main.bicepparam \
-                  --parameters \
-                    location=$(azureLocationDev) \
-                    environment=dev \
-                    projectName=entra-demo \
-                    imageRepository=$(imageRepository) \
-                    registryUsername="$REGISTRY_USERNAME" \
-                    registryPassword="$REGISTRY_PASSWORD" \
-                    sqlAdminUsername="$SQL_ADMIN_USERNAME" \
-                    sqlAdminPassword="$SQL_ADMIN_PASSWORD"
+                  }
+                }
+                
+                Write-Host "All required variables present, proceeding with deployment..." -ForegroundColor Green
+                
+                az deployment group create `
+                  --resource-group "$(resourceGroupDev)" `
+                  --template-file "infra/main.bicep" `
+                  --parameters "infra/main.bicepparam" `
+                  --parameters `
+                    location="$(azureLocationDev)" `
+                    environment="dev" `
+                    projectName="entra-demo" `
+                    imageRepository="$(imageRepository)" `
+                    registryUsername="$env:REGISTRY_USERNAME" `
+                    registryPassword="$env:REGISTRY_PASSWORD" `
+                    sqlAdminUsername="$env:SQL_ADMIN_USERNAME" `
+                    sqlAdminPassword="$env:SQL_ADMIN_PASSWORD"
+                
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Bicep deployment successful" -ForegroundColor Green
+                } else {
+                  Write-Host "Bicep deployment failed" -ForegroundColor Red
+                  exit 1
+                }
             env:
               REGISTRY_USERNAME: $(registryUsername)
               REGISTRY_PASSWORD: $(registryPassword)
@@ -385,46 +397,84 @@ stages:
             displayName: 'Update Container Apps images'
             inputs:
               azureSubscription: 'AzureServiceConnection'
-              scriptType: 'bash'
+              scriptType: 'ps'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                REGISTRY=$(containerRegistry)
-                IMAGE_TAG=$(tag)
-
+                $registry = "$(containerRegistry)"
+                $imageTag = "$(tag)"
+                $resourceGroup = "$(resourceGroupDev)"
+                $imageRepository = "$(imageRepository)"
+                
+                Write-Host "Updating container apps with image tag: $imageTag" -ForegroundColor Cyan
+                
                 # Update frontend
-                az containerapp update \
-                  --name frontend-dev \
-                  --resource-group $(resourceGroupDev) \
-                  --image $REGISTRY/$(imageRepository)/frontend:$IMAGE_TAG
-
+                Write-Host "Updating frontend..."
+                az containerapp update `
+                  --name "frontend-dev" `
+                  --resource-group "$resourceGroup" `
+                  --image "$registry/$imageRepository/frontend:$imageTag"
+                
                 # Update BFF
-                az containerapp update \
-                  --name bff-dev \
-                  --resource-group $(resourceGroupDev) \
-                  --image $REGISTRY/$(imageRepository)/bff:$IMAGE_TAG
-
+                Write-Host "Updating BFF..."
+                az containerapp update `
+                  --name "bff-dev" `
+                  --resource-group "$resourceGroup" `
+                  --image "$registry/$imageRepository/bff:$imageTag"
+                
                 # Update API
-                az containerapp update \
-                  --name api-dev \
-                  --resource-group $(resourceGroupDev) \
-                  --image $REGISTRY/$(imageRepository)/api:$IMAGE_TAG
+                Write-Host "Updating API..."
+                az containerapp update `
+                  --name "api-dev" `
+                  --resource-group "$resourceGroup" `
+                  --image "$registry/$imageRepository/api:$imageTag"
+                
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Container apps updated successfully" -ForegroundColor Green
+                } else {
+                  Write-Host "Container apps update failed" -ForegroundColor Red
+                  exit 1
+                }
 
           - task: AzureCLI@2
             displayName: 'Verify Container Apps health'
             inputs:
               azureSubscription: 'AzureServiceConnection'
-              scriptType: 'bash'
+              scriptType: 'ps'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                echo "Checking BFF health..."
-                BFF_URL=$(az containerapp show --name bff-dev --resource-group $(resourceGroupDev) \
-                  --query "properties.configuration.ingress.fqdn" -o tsv)
-                curl -f https://$BFF_URL/health || exit 1
-
-                echo "Checking API container app state..."
-                API_STATE=$(az containerapp show --name api-dev --resource-group $(resourceGroupDev) \
-                  --query "properties.provisioningState" -o tsv)
-                test "$API_STATE" = "Succeeded" || exit 1
+                Write-Host "Checking BFF health..." -ForegroundColor Cyan
+                $bffUrl = az containerapp show `
+                  --name "bff-dev" `
+                  --resource-group "$(resourceGroupDev)" `
+                  --query "properties.configuration.ingress.fqdn" -o tsv
+                
+                Write-Host "BFF URL: https://$bffUrl/health"
+                try {
+                  $response = Invoke-WebRequest -Uri "https://$bffUrl/health" -UseBasicParsing -ErrorAction Stop
+                  if ($response.StatusCode -eq 200) {
+                    Write-Host "✓ BFF health check passed" -ForegroundColor Green
+                  } else {
+                    Write-Host "✗ BFF health check failed with status $($response.StatusCode)" -ForegroundColor Red
+                    exit 1
+                  }
+                } catch {
+                  Write-Host "✗ BFF health check failed: $_" -ForegroundColor Red
+                  exit 1
+                }
+                
+                Write-Host "Checking API container app state..." -ForegroundColor Cyan
+                $apiState = az containerapp show `
+                  --name "api-dev" `
+                  --resource-group "$(resourceGroupDev)" `
+                  --query "properties.provisioningState" -o tsv
+                
+                Write-Host "API provisioning state: $apiState"
+                if ($apiState -eq "Succeeded") {
+                  Write-Host "✓ API provisioning succeeded" -ForegroundColor Green
+                } else {
+                  Write-Host "✗ API provisioning failed (state: $apiState)" -ForegroundColor Red
+                  exit 1
+                }
 
 # # ============================================================================
 # # STAGE 4: DEPLOY TO PRODUCTION

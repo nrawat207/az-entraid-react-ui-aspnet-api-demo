@@ -18,8 +18,11 @@ pr:
     - main
     - develop
 
+# pool:
+#   vmImage: 'ubuntu-latest'
+
 pool:
-  vmImage: 'ubuntu-latest'
+  name: Default   # self-hosted agent pool
 
 variables:
 - template: azure-pipelines.variables.yml

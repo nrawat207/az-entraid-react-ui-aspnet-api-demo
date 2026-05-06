@@ -22,27 +22,39 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  dockerRegistryServiceConnection: 'AcrConnection'
-  containerRegistryName: 'entrademodevacr'
-  containerRegistry: '$(containerRegistryName).azurecr.io'
-  registryUsername: ''
-  registryPassword: ''
-  resourceGroupDev: 'entra-demo-dev-rg'
-  azureLocationDev: 'eastus'
-  sqlAdminUsernameDev: 'sqladmin'
-  sqlAdminPasswordDev: ''
-  resourceGroupProd: 'entra-demo-prod-rg'
-  azureLocationProd: 'eastus'
-  sqlAdminUsernameProd: 'prodadmin'
-  sqlAdminPasswordProd: ''
-  imageRepository: 'entra-demo'
-  dockerfileFrontend: '$(Build.SourcesDirectory)/frontend/Dockerfile'
-  dockerfileBff: '$(Build.SourcesDirectory)/bff/Dockerfile'
-  dockerfileApi: '$(Build.SourcesDirectory)/api/Dockerfile'
-  tag: '$(Build.BuildId)'
-  vmImageName: 'ubuntu-latest'
-  buildConfiguration: 'Release'
-  workingDirectory: '$(System.DefaultWorkingDirectory)'
+- template: azure-pipelines.variables.yml
+
+# variables:
+# - group: entra-demo-dev-vars   # pulls in registryUsername, registryPassword, sqlAdminPasswordDev, etc.
+# - name: dockerRegistryServiceConnection
+#   value: 'AcrConnection'
+# - name: containerRegistryName
+#   value: 'entrademodevacr'
+# - name: containerRegistry
+#   value: '$(containerRegistryName).azurecr.io'
+# - name: resourceGroupDev
+#   value: 'entra-demo-dev-rg'
+# - name: azureLocationDev
+#   value: 'eastus'
+# - name: sqlAdminUsernameDev
+#   value: 'sqladmin'
+# - name: imageRepository
+#   value: 'entra-demo'
+# - name: dockerfileFrontend
+#   value: '$(Build.SourcesDirectory)/frontend/Dockerfile'
+# - name: dockerfileBff
+#   value: '$(Build.SourcesDirectory)/bff/Dockerfile'
+# - name: dockerfileApi
+#   value: '$(Build.SourcesDirectory)/api/Dockerfile'
+# - name: tag
+#   value: '$(Build.BuildId)'
+# - name: vmImageName
+#   value: 'ubuntu-latest'
+# - name: buildConfiguration
+#   value: 'Release'
+# - name: workingDirectory
+#   value: '$(System.DefaultWorkingDirectory)'
+
 
 stages:
 
@@ -76,10 +88,10 @@ stages:
               environment=dev \
               projectName=entra-demo \
               imageRepository=$(imageRepository) \
-              registryUsername="dummy-registry-user" \
-              registryPassword="dummy-registry-pass" \
-              sqlAdminUsername="$(sqlAdminUsernameDev)" \
-              sqlAdminPassword="dummy-sql-pass"
+              registryUsername=$(registryUsername) \
+              registryPassword=$(registryPassword) \
+              sqlAdminUsername=$(sqlAdminUsernameDev) \
+              sqlAdminPassword=$(sqlAdminPasswordDev)
           
           if [ $? -eq 0 ]; then
             echo "✓ Bicep validation successful - no syntax errors"
@@ -119,10 +131,10 @@ stages:
               environment=dev \
               projectName=entra-demo \
               imageRepository=$(imageRepository) \
-              registryUsername="dummy-registry-user" \
-              registryPassword="dummy-registry-pass" \
-              sqlAdminUsername="$(sqlAdminUsernameDev)" \
-              sqlAdminPassword="dummy-sql-pass"
+              registryUsername=$(registryUsername) \
+              registryPassword=$(registryPassword) \
+              sqlAdminUsername=$(sqlAdminUsernameDev) \
+              sqlAdminPassword=$(sqlAdminPasswordDev)
           
           echo ""
           echo "What-If Summary: Review changes above before deployment"
@@ -262,14 +274,14 @@ stages:
       displayName: 'Login to ACR'
       inputs:
         command: 'login'
-        containerRegistry: '$(dockerRegistryServiceConnection)'
+        containerRegistry: 'AzureServiceConnection'
 
     # Build and push frontend image
     - task: Docker@2
       displayName: 'Build & push frontend image'
       inputs:
         command: 'buildAndPush'
-        containerRegistry: '$(dockerRegistryServiceConnection)'
+        containerRegistry: 'AzureServiceConnection'
         repository: '$(imageRepository)/frontend'
         Dockerfile: '$(dockerfileFrontend)'
         buildContext: '$(Build.SourcesDirectory)'
@@ -283,7 +295,7 @@ stages:
       displayName: 'Build & push BFF image'
       inputs:
         command: 'buildAndPush'
-        containerRegistry: '$(dockerRegistryServiceConnection)'
+        containerRegistry: 'AzureServiceConnection'
         repository: '$(imageRepository)/bff'
         Dockerfile: '$(dockerfileBff)'
         buildContext: '$(Build.SourcesDirectory)'
@@ -297,7 +309,7 @@ stages:
       displayName: 'Build & push API image'
       inputs:
         command: 'buildAndPush'
-        containerRegistry: '$(dockerRegistryServiceConnection)'
+        containerRegistry: 'AzureServiceConnection'
         repository: '$(imageRepository)/api'
         Dockerfile: '$(dockerfileApi)'
         buildContext: '$(Build.SourcesDirectory)'

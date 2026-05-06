@@ -6,12 +6,13 @@
 # CONTAINER REGISTRY
 # ============================================================================
 variables:
+- group: entra-demo-dev-vars   
 - name: containerRegistryName
   value: 'entrademodevacr'  # ACR name (without .azurecr.io)
-- name: registryUsername
-  value: ''  # Set via Azure DevOps secret variables
-- name: registryPassword
-  value: ''  # Set via Azure DevOps secret variables
+# - name: registryUsername
+#   value: ''  # Set via Azure DevOps secret variables
+# - name: registryPassword
+#   value: ''  # Set via Azure DevOps secret variables
 
 # ============================================================================
 # DEVELOPMENT ENVIRONMENT
@@ -27,25 +28,25 @@ variables:
 # SQL Admin
 - name: sqlAdminUsernameDev
   value: 'sqladmin'
-- name: sqlAdminPasswordDev
-  value: ''  # Set via secret variable
+# - name: sqlAdminPasswordDev
+#   value: ''  # Set via secret variable
 
-# ============================================================================
-# PRODUCTION ENVIRONMENT
-# ============================================================================
-# Azure Subscription
-- name: resourceGroupProd
-  value: 'entra-demo-prod-rg'
-- name: azureLocationProd
-  value: 'eastus'
-- name: subscriptionNameProd
-  value: 'Azure subscription 1'
+# # ============================================================================
+# # PRODUCTION ENVIRONMENT
+# # ============================================================================
+# # Azure Subscription
+# - name: resourceGroupProd
+#   value: 'entra-demo-prod-rg'
+# - name: azureLocationProd
+#   value: 'eastus'
+# - name: subscriptionNameProd
+#   value: 'Azure subscription 1'
   
-# SQL Admin
-- name: sqlAdminUsernameProd
-  value: 'prodadmin'
-- name: sqlAdminPasswordProd
-  value: ''  # Set via secret variable
+# # SQL Admin
+# - name: sqlAdminUsernameProd
+#   value: 'prodadmin'
+# - name: sqlAdminPasswordProd
+#   value: ''  # Set via secret variable
 
 # ============================================================================
 # IMAGE NAMING
@@ -62,11 +63,21 @@ variables:
 # ============================================================================
 # BUILD SETTINGS
 # ============================================================================
-- name: buildConfiguration
-  value: 'Release'
-- name: dotnetVersion_net8
-  value: '8.0.x'
 - name: dotnetVersion_net10
   value: '10.0.x'
 - name: nodeVersion
   value: '20.x'
+- name: dockerfileFrontend
+  value: '$(Build.SourcesDirectory)/frontend/Dockerfile'
+- name: dockerfileBff
+  value: '$(Build.SourcesDirectory)/bff/Dockerfile'
+- name: dockerfileApi
+  value: '$(Build.SourcesDirectory)/api/Dockerfile'
+- name: tag
+  value: '$(Build.BuildId)'
+# - name: vmImageName
+#   value: 'ubuntu-latest'
+- name: buildConfiguration
+  value: 'Release'
+- name: workingDirectory
+  value: '$(System.DefaultWorkingDirectory)'

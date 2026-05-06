@@ -98,9 +98,9 @@ stages:
               sqlAdminPassword="$(sqlAdminPasswordDev)"
           
           if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Bicep validation successful - no syntax errors" -ForegroundColor Green
+            Write-Host "[OK] Bicep validation successful - no syntax errors" -ForegroundColor Green
           } else {
-            Write-Host "✗ Bicep validation failed" -ForegroundColor Red
+            Write-Host "[FAILED] Bicep validation failed" -ForegroundColor Red
             exit 1
           }
 
@@ -382,9 +382,9 @@ stages:
                     sqlAdminPassword="$env:SQL_ADMIN_PASSWORD"
                 
                 if ($LASTEXITCODE -eq 0) {
-                  Write-Host "Bicep deployment successful" -ForegroundColor Green
+                  Write-Host "[OK] Bicep deployment successful" -ForegroundColor Green
                 } else {
-                  Write-Host "Bicep deployment failed" -ForegroundColor Red
+                  Write-Host "[FAILED] Bicep deployment failed" -ForegroundColor Red
                   exit 1
                 }
             env:
@@ -429,9 +429,9 @@ stages:
                   --image "$registry/$imageRepository/api:$imageTag"
                 
                 if ($LASTEXITCODE -eq 0) {
-                  Write-Host "Container apps updated successfully" -ForegroundColor Green
+                  Write-Host "[OK] Container apps updated successfully" -ForegroundColor Green
                 } else {
-                  Write-Host "Container apps update failed" -ForegroundColor Red
+                  Write-Host "[FAILED] Container apps update failed" -ForegroundColor Red
                   exit 1
                 }
 
@@ -452,13 +452,13 @@ stages:
                 try {
                   $response = Invoke-WebRequest -Uri "https://$bffUrl/health" -UseBasicParsing -ErrorAction Stop
                   if ($response.StatusCode -eq 200) {
-                    Write-Host "✓ BFF health check passed" -ForegroundColor Green
+                    Write-Host "[OK] BFF health check passed" -ForegroundColor Green
                   } else {
-                    Write-Host "✗ BFF health check failed with status $($response.StatusCode)" -ForegroundColor Red
+                    Write-Host "[FAILED] BFF health check failed with status $($response.StatusCode)" -ForegroundColor Red
                     exit 1
                   }
                 } catch {
-                  Write-Host "✗ BFF health check failed: $_" -ForegroundColor Red
+                  Write-Host "[FAILED] BFF health check failed: $_" -ForegroundColor Red
                   exit 1
                 }
                 
@@ -470,9 +470,9 @@ stages:
                 
                 Write-Host "API provisioning state: $apiState"
                 if ($apiState -eq "Succeeded") {
-                  Write-Host "✓ API provisioning succeeded" -ForegroundColor Green
+                  Write-Host "[OK] API provisioning succeeded" -ForegroundColor Green
                 } else {
-                  Write-Host "✗ API provisioning failed (state: $apiState)" -ForegroundColor Red
+                  Write-Host "[FAILED] API provisioning failed (state: $apiState)" -ForegroundColor Red
                   exit 1
                 }
 

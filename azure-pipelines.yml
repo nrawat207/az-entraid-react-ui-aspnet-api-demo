@@ -75,30 +75,6 @@ stages:
     - checkout: self
     
     - task: AzureCLI@2
-      displayName: 'Register required Azure providers'
-      inputs:
-        azureSubscription: 'AzureServiceConnection'
-        scriptType: 'ps'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          Write-Host "Registering Azure resource providers..."
-          
-          # Register OperationalInsights provider
-          az provider register --namespace Microsoft.OperationalInsights
-          
-          # Register other required providers
-          az provider register --namespace Microsoft.ContainerRegistry
-          az provider register --namespace Microsoft.ContainerService
-          az provider register --namespace Microsoft.Sql
-          az provider register --namespace Microsoft.KeyVault
-          az provider register --namespace Microsoft.Insights
-          
-          Write-Host "Waiting for provider registrations to complete..."
-          Start-Sleep -Seconds 5
-          
-          Write-Host "[OK] Azure providers registered" -ForegroundColor Green
-    
-    - task: AzureCLI@2
       displayName: 'Validate Bicep - Dev'
       inputs:
         azureSubscription: 'AzureServiceConnection'

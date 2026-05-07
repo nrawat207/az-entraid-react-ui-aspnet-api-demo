@@ -75,6 +75,30 @@ stages:
     - checkout: self
     
     - task: AzureCLI@2
+      displayName: 'Register required Azure providers'
+      inputs:
+        azureSubscription: 'AzureServiceConnection'
+        scriptType: 'ps'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          Write-Host "Registering Azure resource providers..."
+          
+          # Register OperationalInsights provider
+          az provider register --namespace Microsoft.OperationalInsights
+          
+          # Register other required providers
+          az provider register --namespace Microsoft.ContainerRegistry
+          az provider register --namespace Microsoft.ContainerService
+          az provider register --namespace Microsoft.Sql
+          az provider register --namespace Microsoft.KeyVault
+          az provider register --namespace Microsoft.Insights
+          
+          Write-Host "Waiting for provider registrations to complete..."
+          Start-Sleep -Seconds 5
+          
+          Write-Host "[OK] Azure providers registered" -ForegroundColor Green
+    
+    - task: AzureCLI@2
       displayName: 'Validate Bicep - Dev'
       inputs:
         azureSubscription: 'AzureServiceConnection'
@@ -95,7 +119,10 @@ stages:
               registryUsername="$(registryUsername)" `
               registryPassword="$(registryPassword)" `
               sqlAdminUsername="$(sqlAdminUsernameDev)" `
-              sqlAdminPassword="$(sqlAdminPasswordDev)"
+              sqlAdminPassword="$(sqlAdminPasswordDev)" `
+              useExistingRegistry=true `
+              existingRegistryName="entrademodevacr" `
+              existingRegistryUrl="entrademodevacr.azurecr.io"
           
           if ($LASTEXITCODE -eq 0) {
             Write-Host "[OK] Bicep validation successful - no syntax errors" -ForegroundColor Green
@@ -139,7 +166,10 @@ stages:
               registryUsername="$(registryUsername)" `
               registryPassword="$(registryPassword)" `
               sqlAdminUsername="$(sqlAdminUsernameDev)" `
-              sqlAdminPassword="$(sqlAdminPasswordDev)"
+              sqlAdminPassword="$(sqlAdminPasswordDev)" `
+              useExistingRegistry=true `
+              existingRegistryName="entrademodevacr" `
+              existingRegistryUrl="entrademodevacr.azurecr.io"
           
           Write-Host ""
           Write-Host "What-If Summary: Review changes above before deployment"
@@ -379,7 +409,10 @@ stages:
                     registryUsername="$env:REGISTRY_USERNAME" `
                     registryPassword="$env:REGISTRY_PASSWORD" `
                     sqlAdminUsername="$env:SQL_ADMIN_USERNAME" `
-                    sqlAdminPassword="$env:SQL_ADMIN_PASSWORD"
+                    sqlAdminPassword="$env:SQL_ADMIN_PASSWORD" `
+                    useExistingRegistry=true `
+                    existingRegistryName="entrademodevacr" `
+                    existingRegistryUrl="entrademodevacr.azurecr.io"
                 
                 if ($LASTEXITCODE -eq 0) {
                   Write-Host "[OK] Bicep deployment successful" -ForegroundColor Green

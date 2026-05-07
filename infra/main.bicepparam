@@ -9,3 +9,8 @@ param registryUsername = 'registryUsernameFromDevOps'
 param registryPassword = 'registryPasswordFromDevOps'
 param sqlAdminUsername = 'sqladmin'
 param sqlAdminPassword = 'sqlPasswordFromDevOps'
+
+// Use existing ACR registry instead of creating new one
+param useExistingRegistry = true
+param existingRegistryName = 'entrademodevacr'
+param existingRegistryUrl = 'entrademodevacr.azurecr.io'

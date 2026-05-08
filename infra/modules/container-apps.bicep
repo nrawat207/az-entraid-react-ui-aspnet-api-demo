@@ -13,7 +13,104 @@ var bffAppName = 'bff-${environment}'
 var apiAppName = 'api-${environment}'
 var internalApiBaseUrl = 'http://${apiAppName}'
 
-// Frontend Container App
+// API Container App (deploy first - no dependencies)
+resource apiContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
+  name: apiAppName
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    managedEnvironmentId: containerAppsEnvironmentId
+    configuration: {
+      activeRevisionsMode: 'Single'
+      registries: [
+        {
+          server: registryUrl
+          username: registryUsername
+          passwordSecretRef: 'registry-password'
+        }
+      ]
+      secrets: [
+        {
+          name: 'registry-password'
+          value: registryPassword
+        }
+        {
+          name: 'keyvault-uri'
+          value: keyVaultUri
+        }
+      ]
+      ingress: {
+        external: false
+        targetPort: 5002
+        transport: 'Auto'
+        allowInsecure: false
+        corsPolicy: {
+          allowedOrigins: [
+            '*'
+          ]
+          allowedMethods: [
+            'GET'
+            'POST'
+            'PUT'
+            'DELETE'
+            'OPTIONS'
+          ]
+          allowedHeaders: [
+            '*'
+          ]
+          exposeHeaders: [
+            '*'
+          ]
+          maxAge: 600
+          allowCredentials: true
+        }
+        traffic: [
+          {
+            latestRevision: true
+            weight: 100
+          }
+        ]
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: 'api'
+          image: '${registryUrl}/${imageRepository}/api:latest'
+          resources: {
+            cpu: json('0.5')
+            memory: '1Gi'
+          }
+          env: [
+            {
+              name: 'ASPNETCORE_ENVIRONMENT'
+              value: environment == 'prod' ? 'Production' : 'Development'
+            }
+            {
+              name: 'KeyVault__Uri'
+              secretRef: 'keyvault-uri'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 3
+      }
+    }
+  }
+  dependsOn: [
+    frontendContainerApp
+  ]
+
+  tags: {
+    environment: environment
+  }
+}
+
+// Frontend Container App (deploy second)
 resource frontendContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
   name: frontendAppName
   location: location
@@ -79,7 +176,7 @@ resource frontendContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
   }
 }
 
-// BFF Container App
+// BFF Container App (deploy last - depends on Frontend through CORS policy reference)
 resource bffContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
   name: bffAppName
   location: location
@@ -165,100 +262,6 @@ resource bffContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
             {
               name: 'Api__BaseUrl'
               value: internalApiBaseUrl
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 1
-        maxReplicas: 3
-      }
-    }
-  }
-
-  tags: {
-    environment: environment
-  }
-}
-
-// API Container App
-resource apiContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
-  name: apiAppName
-  location: location
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    managedEnvironmentId: containerAppsEnvironmentId
-    configuration: {
-      activeRevisionsMode: 'Single'
-      registries: [
-        {
-          server: registryUrl
-          username: registryUsername
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      secrets: [
-        {
-          name: 'registry-password'
-          value: registryPassword
-        }
-        {
-          name: 'keyvault-uri'
-          value: keyVaultUri
-        }
-      ]
-      ingress: {
-        external: false
-        targetPort: 5002
-        transport: 'Auto'
-        allowInsecure: false
-        corsPolicy: {
-          allowedOrigins: [
-            'https://${bffContainerApp.properties.configuration.ingress.fqdn}'
-          ]
-          allowedMethods: [
-            'GET'
-            'POST'
-            'PUT'
-            'DELETE'
-            'OPTIONS'
-          ]
-          allowedHeaders: [
-            '*'
-          ]
-          exposeHeaders: [
-            '*'
-          ]
-          maxAge: 600
-          allowCredentials: true
-        }
-        traffic: [
-          {
-            latestRevision: true
-            weight: 100
-          }
-        ]
-      }
-    }
-    template: {
-      containers: [
-        {
-          name: 'api'
-          image: '${registryUrl}/${imageRepository}/api:latest'
-          resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
-          }
-          env: [
-            {
-              name: 'ASPNETCORE_ENVIRONMENT'
-              value: environment == 'prod' ? 'Production' : 'Development'
-            }
-            {
-              name: 'KeyVault__Uri'
-              secretRef: 'keyvault-uri'
             }
           ]
         }

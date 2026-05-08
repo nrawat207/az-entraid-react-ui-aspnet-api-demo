@@ -6,7 +6,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2026-01-01-pr
   name: registryName
   location: location
   sku: {
-    name: 'Standard'
+    name: 'Basic'
   }
   properties: {
     adminUserEnabled: true

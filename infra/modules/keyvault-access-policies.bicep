@@ -8,7 +8,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2025-05-01' existing = {
 
 resource keyVaultAccessPolicies 'Microsoft.KeyVault/vaults/accessPolicies@2025-05-01' = {
   parent: keyVault
-  name: 'add'
+  name: 'replace'
   properties: {
     accessPolicies: [
       for principalId in principalIds: {

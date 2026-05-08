@@ -10,19 +10,15 @@ param sqlAdminUsername string
 @secure()
 param sqlAdminPassword string
 param imageRepository string = 'entra-demo'
-param existingRegistryName string = '' // Use existing ACR instead of creating new one
-param existingRegistryUrl string = '' // URL of existing ACR (e.g., entrademodevacr.azurecr.io)
-param useExistingRegistry bool = false // Set to true to skip ACR creation
 
-var uniqueSuffix = uniqueString(projectName, environment, location)
-var keyVaultName = '${projectName}-kv-${uniqueSuffix}'
+var keyVaultName = '${projectName}-kv-${environment}'
 var logAnalyticsWorkspaceName = '${projectName}-law-${environment}'
 var appInsightsName = '${projectName}-ai-${environment}'
-var sqlServerName = '${projectName}-sql-${uniqueSuffix}'
+var sqlServerName = '${projectName}-sql-${environment}'
 var sqlDatabaseName = '${projectName}db'
-var containerRegistryName = '${projectName}acr${replace(uniqueSuffix, '-', '')}'
+// Container Registry name: must be globally unique, lowercase alphanumeric only
+var containerRegistryName = toLower('entrademoacrdev')
 var containerAppsEnvironmentName = '${projectName}-cae-${environment}'
-var registryUrlToUse = useExistingRegistry ? existingRegistryUrl : containerRegistry.outputs.registryUrl
 
 // Deploy monitoring first (Log Analytics + App Insights)
 module monitoring 'modules/monitoring.bicep' = {
@@ -48,8 +44,8 @@ module sql 'modules/sql.bicep' = {
   }
 }
 
-// Deploy Container Registry (only if not using existing)
-module containerRegistry 'modules/container-registry.bicep' = if (!useExistingRegistry) {
+// Deploy Container Registry (always created - idempotent)
+module containerRegistry 'modules/container-registry.bicep' = {
   name: 'container-registry'
   params: {
     location: location
@@ -92,7 +88,7 @@ module containerApps 'modules/container-apps.bicep' = {
     location: location
     environment: environment
     containerAppsEnvironmentId: containerAppsEnv.outputs.containerAppsEnvironmentId
-    registryUrl: registryUrlToUse
+    registryUrl: containerRegistry.outputs.registryUrl
     registryUsername: registryUsername
     registryPassword: registryPassword
     imageRepository: imageRepository
@@ -129,8 +125,8 @@ output infrastructureInfo object = {
   sqlServerName: sql.outputs.sqlServerName
   sqlServerFqdn: sql.outputs.sqlServerFqdn
   sqlDatabaseName: sql.outputs.sqlDatabaseName
-  containerRegistryName: useExistingRegistry ? existingRegistryName : containerRegistry.outputs.registryName
-  containerRegistryUrl: registryUrlToUse
+  containerRegistryName: containerRegistry.outputs.registryName
+  containerRegistryUrl: containerRegistry.outputs.registryUrl
 }
 
 output applicationUrls object = {

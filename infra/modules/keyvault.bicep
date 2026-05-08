@@ -8,6 +8,12 @@ param appInsightsConnectionString string
 param sqlAdminPassword string
 param sqlServerFqdn string
 param sqlDatabaseName string
+// Optional secrets - only create if provided (not empty)
+param bffClientId string = ''
+@secure()
+param bffClientSecret string = ''
+param bffTenantId string = ''
+param apiAudience string = ''
 
 var skuName = 'standard'
 var enabledForDeployment = true
@@ -38,36 +44,39 @@ resource keyVault 'Microsoft.KeyVault/vaults@2025-05-01' = {
   }
 }
 
-// Secrets for BFF (will be populated during deployment)
-resource bffClientSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+// Only create BffClientSecret if a value is provided
+resource bffClientSecretResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(bffClientSecret)) {
   parent: keyVault
   name: 'BffClientSecret'
   properties: {
-    value: 'placeholder-update-in-azure-portal'
+    value: bffClientSecret
   }
 }
 
-resource bffTenantId 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+// Only create BffTenantId if a value is provided
+resource bffTenantIdResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(bffTenantId)) {
   parent: keyVault
   name: 'BffTenantId'
   properties: {
-    value: 'placeholder-update-in-azure-portal'
+    value: bffTenantId
   }
 }
 
-resource bffClientId 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+// Only create BffClientId if a value is provided
+resource bffClientIdResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(bffClientId)) {
   parent: keyVault
   name: 'BffClientId'
   properties: {
-    value: 'placeholder-update-in-azure-portal'
+    value: bffClientId
   }
 }
 
-resource apiAudience 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+// Only create ApiAudience if a value is provided
+resource apiAudienceResource 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(apiAudience)) {
   parent: keyVault
   name: 'ApiAudience'
   properties: {
-    value: 'placeholder-update-in-azure-portal'
+    value: apiAudience
   }
 }
 
